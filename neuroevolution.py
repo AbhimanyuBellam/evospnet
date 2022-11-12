@@ -35,8 +35,16 @@ class NeuroEvolution:
             'cuda' if torch.cuda.is_available() else 'cpu')
         self.save_dir = hyperparams.save_dir
 
+        # self.train_loader = train_loader
+        # self.test_loader = test_loader
+
     def decode_candidate(self, candidate):
-        print("Decoding")
+        # print("Decoding")
+        # print(self.decode_weights_lengths)
+        # print(self.decode_weights_shapes)
+        # print(self.decode_bias_lengths)
+        # print(self.decode_bias_shapes)
+        # print("_____")
         for i in range(len(self.decode_weights_lengths)):
             if i == 0:
                 # weights
@@ -44,21 +52,27 @@ class NeuroEvolution:
 
             else:
                 # weights
-                layer_weights = candidate[self.decode_bias_lengths[i-1]                                          :self.decode_weights_lengths[i]]
+                layer_weights = candidate[self.decode_bias_lengths[i-1]
+                    :self.decode_weights_lengths[i]]
 
-            layer_weights.reshape(self.decode_weights_shapes[i])
+            # print("OO:", layer_weights.shape)
+            # print("TO:", self.decode_weights_shapes[i])
+            layer_weights = layer_weights.reshape(
+                list(self.decode_weights_shapes[i]))
+            # print(layer_weights.shape)
 
             # bias
-            layer_bias = candidate[self.decode_weights_lengths[i]                                   :self.decode_bias_lengths[i]]
-            layer_bias.reshape(self.decode_bias_shapes[i])
+            layer_bias = candidate[self.decode_weights_lengths[i]:self.decode_bias_lengths[i]]
+            layer_bias = layer_bias.reshape(list(self.decode_bias_shapes[i]))
 
             # replace weights of temp net with new weights to calc cost -
             # TODO make it access different basicnet for parallel access, map candidate to network
             temp_net = BasicNet().to(self.device)
             with torch.no_grad():
-                for j in range(len(temp_net.layers)):
-                    temp_net.layers[i].weight.data = layer_weights
-                    temp_net.layers[i].bias.data = layer_bias
+                # for j in range(len(temp_net.layers)):
+                temp_net.layers[i].weight.data = torch.from_numpy(
+                    layer_weights)
+                temp_net.layers[i].bias.data = torch.from_numpy(layer_bias)
         return temp_net
 
     def cost_func(self, candidate):
@@ -66,24 +80,25 @@ class NeuroEvolution:
         # decode candidate
         network = self.decode_candidate(candidate)
 
-        # evaluate cost with all inputs
-        net_out = network.forward()
-
         # train_loss=[]
         train_acc = 0
         loss = 0
         for b, (X_train, y_train) in enumerate(train_loader):
-            b += 1
             # run model, get loss
             # flatten and evaluate
-            y_pred = network.forward(X_train.view(hyperparams.batch_size, -1))
-            loss += self.neural_cost_func(y_pred, y_train)
+            # print("X_shape:", X_train.shape)
+            input_ = X_train.view(hyperparams.batch_size, -1)
+            # print("inp shape:", input_.shape)
+            y_pred = network.forward(input_)
+            loss += self.neural_cost_func(y_pred, y_train).data.item()
             # gen_train_loss.append(loss)
 
             predicted = torch.max(y_pred.data, 1)[1]
 
-            # train_acc += (predicted == y_test).sum()
+            train_acc += (predicted == y_train).sum()
+        print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
         # gen_train_loss_total = sum(gen_train_loss)
+        loss /= len(train_loader)
 
         # destroy network object
         del network
@@ -93,30 +108,36 @@ class NeuroEvolution:
         print("Encoding network")
         layers = network.layers
         flattened_array = []
-
+        position_weights = 0
+        position_bias = 0
         for layer in layers:
             # weights
             weights = layer.weight.flatten()
 
-            weights = weights.cpu().detach().tolist()
+            # weights = weights.cpu().detach().tolist()
             weights_len = len(weights)
+            position_weights += weights_len
 
             # bias
             bias = layer.bias.flatten()
 
-            bias = bias.cpu().detach().tolist()
+            # bias = bias.cpu().detach().tolist()
             bias_len = len(bias)
+            position_bias = position_weights+bias_len
 
             if decode_setter:
-                self.decode_weights_shapes.append(weights.shape)
-                self.decode_weights_lengths.append(weights_len)
-                self.decode_bias_shapes.append(bias.shape)
-                self.decode_bias_lengths.append(bias_len)
+                self.decode_weights_shapes.append(layer.weight.shape)
+                self.decode_weights_lengths.append(position_weights)
+                self.decode_bias_shapes.append(layer.bias.shape)
+                self.decode_bias_lengths.append(position_bias)
 
-            layer_params = weights+bias
+            position_weights += bias_len
+
+            layer_params = weights.cpu().detach().tolist() + \
+                bias.cpu().detach().tolist()
             flattened_array += layer_params
-
-        return np.array(flattened_array)
+            print("Flattened_ len:", len(flattened_array))
+        return np.array(flattened_array, dtype=np.float32)
 
     def initialize_population(self):
         print("Initializing population")

@@ -1,10 +1,10 @@
 
 # Hyper parameters :
 # no of candidate solutions in the population
-pop_size = 3
+pop_size = 4
 
-# how many parts are made with the given input json file
-num_split_parts = 3
+# how many parts are made with the given input
+num_split_parts = 4
 
 # num of iterations for each split part, to have length of num_split_parts
 num_iters = [10, 10, 10]
@@ -16,7 +16,7 @@ split_cores = num_split_parts
 gen_split = 6700
 
 # batch size for evaluation
-batch_size = 8
+batch_size = 100
 
 # save directory
 save_dir = "results/basic_net_res/"

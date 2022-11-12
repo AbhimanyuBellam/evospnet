@@ -21,9 +21,13 @@ class BasicNet(nn.Module):
         self.layers = [self.d1, self.d2, self.d3]
 
     def forward(self, X):
+        # print(X.shape)
         X = F.relu(self.layers[0](X))
+        # print(X.shape)
         X = F.relu(self.layers[1](X))
+        # print(X.shape)
         X = self.layers[2](X)
+        # print(X.shape)
         return F.log_softmax(X, dim=1)
 
     # def get_layers(self):

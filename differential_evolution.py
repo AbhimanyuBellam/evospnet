@@ -76,7 +76,7 @@ class DifferentialEvolution:
                 if bounds[i][0] <= vec[i] and vec[i] <= bounds[i][1]:
                     vec_new.append(vec[i])
             # print("count:",count)
-        return np.array(vec_new)
+        return np.array(vec_new, dtype=np.float32)
 
     def local_search(self, population, iteration, maxiter):
         # 1 & 2
@@ -115,7 +115,7 @@ class DifferentialEvolution:
         for i in range(pop_size):
             p_m_i = (pop_size-i+1)/(1.0*pop_size)
             X_i = asc_pop[i].vector
-            X_i_new = np.zeros(X_i.shape)
+            X_i_new = np.zeros(X_i.shape, dtype=np.float32)
             for j in range(num_dim):
                 b = random.randint(0, 1)
                 r = random.random()
@@ -234,7 +234,7 @@ class DifferentialEvolution:
             # _________________________
             time_a = time.time()
             population, gen_scores = self.local_search(
-                population, self.bounds, generation, maxiter)
+                population, generation, maxiter)
             print("time:", time.time()-time_a)
 
             # --- SCORE KEEPING --------------------------------+
