@@ -9,10 +9,10 @@ import hyperparams as hyperparams
 
 transform = transforms.ToTensor()
 train_dataset = datasets.MNIST(
-    root="../Datasets", train=True, download=False, transform=transform)
+    root="../Datasets", train=True, download=True, transform=transform)
 
 test_dataset = datasets.MNIST(
-    root="../Datasets", train=False, download=False, transform=transform)
+    root="../Datasets", train=False, download=True, transform=transform)
 
 train_loader = DataLoader(
     train_dataset, batch_size=hyperparams.batch_size, shuffle=False)

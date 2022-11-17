@@ -16,10 +16,10 @@ split_cores = num_split_parts
 gen_split = 6700
 
 # batch size for evaluation
-batch_size = 100
+batch_size = 1000
 
 # save directory
-save_dir = "results/basic_net_res/"
+save_dir = "results/basic_net_res"
 
 # no of iterations for integral case
 # this variable is for our assertion

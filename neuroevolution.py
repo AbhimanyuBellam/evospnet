@@ -71,11 +71,14 @@ class NeuroEvolution:
             with torch.no_grad():
                 # for j in range(len(temp_net.layers)):
                 temp_net.layers[i].weight.data = torch.from_numpy(
-                    layer_weights)
-                temp_net.layers[i].bias.data = torch.from_numpy(layer_bias)
+                    layer_weights).to(self.device)
+                temp_net.layers[i].bias.data = torch.from_numpy(
+                    layer_bias).to(self.device)
         return temp_net
 
     def cost_func(self, candidate):
+        start_time = time.time()
+
         print("Finding cost")
         # decode candidate
         network = self.decode_candidate(candidate)
@@ -87,10 +90,12 @@ class NeuroEvolution:
             # run model, get loss
             # flatten and evaluate
             # print("X_shape:", X_train.shape)
-            input_ = X_train.view(hyperparams.batch_size, -1)
+            input_ = X_train.view(hyperparams.batch_size, -1).to(self.device)
+            y_train = y_train.to(self.device)
             # print("inp shape:", input_.shape)
             y_pred = network.forward(input_)
-            loss += self.neural_cost_func(y_pred, y_train).data.item()
+            loss += self.neural_cost_func(y_pred.to(self.device),
+                                          y_train.to(self.device)).data.item()
             # gen_train_loss.append(loss)
 
             predicted = torch.max(y_pred.data, 1)[1]
@@ -102,6 +107,7 @@ class NeuroEvolution:
 
         # destroy network object
         del network
+        print("Time CF:", time.time()-start_time)
         return loss
 
     def encode_network(self, network, decode_setter=False):

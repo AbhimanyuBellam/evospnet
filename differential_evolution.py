@@ -31,7 +31,7 @@ class DifferentialEvolution:
     def ensure_bounds(vec, bounds, tech=1):
         vec_new = []
         # assigning fixed bounds
-        if(tech == 0):
+        if (tech == 0):
             # cycle through each variable in vector
             for i in range(len(vec)):
                 # variable exceedes the minimum boundary
@@ -46,7 +46,7 @@ class DifferentialEvolution:
                 if bounds[i][0] <= vec[i] and vec[i] <= bounds[i][1]:
                     vec_new.append(vec[i])
         # assing numbers randomly with in bounds
-        elif(tech == 1):
+        elif (tech == 1):
             # cycle through each variable in vector
             for i in range(len(vec)):
                 num = random.random()
@@ -60,7 +60,7 @@ class DifferentialEvolution:
                 if bounds[i][0] <= vec[i] and vec[i] <= bounds[i][1]:
                     vec_new.append(vec[i])
         # assigning numbers with in bounds without adding more repetitions
-        elif(tech == 2):
+        elif (tech == 2):
             #print("bounds range:",bounds[0][1]-bounds[0][0])
             test = [i for i in range(bounds[0][0], bounds[0][1]+1)]
             test = set(test)-set(vec)
@@ -183,6 +183,7 @@ class DifferentialEvolution:
 
             # cycle through each individual in the population
             for j in range(0, popsize):
+                print(j)
                 if j % 3 == 0:
                     print("candidate:", j)
 
@@ -191,7 +192,7 @@ class DifferentialEvolution:
                 in_loop = 0
 
                 # TODO to run on GPU
-                while(True):
+                while (True):
                     random_index = random.sample(candidates, 3)
                     # print("random_index:",random_index)
                     # print(population[random_index[0]])
@@ -209,7 +210,7 @@ class DifferentialEvolution:
                     # performing mutation operation as Zhang DE
                     # TODO mainly here
                     for i in i_rand:
-                        if(random.random() < Cr):
+                        if (random.random() < Cr):
                             v_donor[i] = x_3[i] + F*(x_1[i] - x_2[i])
                     break
                     #v_donor= mutation(x_t.tolist(),x_2.tolist(),x_3.tolist(),Cr,i_rand,F,cost_func)
@@ -220,7 +221,7 @@ class DifferentialEvolution:
                     # in_loop=in_loop+1
                     # if(count_b or in_loop==100):
                     #    break
-                if(True):  # (count_b or in_loop==100) and not check):
+                if (True):  # (count_b or in_loop==100) and not check):
                     v_donor = self.ensure_bounds(v_donor, self.bounds)
 
                 score_donor = self.cost_func(v_donor)
