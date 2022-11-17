@@ -21,6 +21,10 @@ class DifferentialEvolution:
         self.cost_func = cost_func
         self.dimensionality = dimensionality
         self.bounds = [hyperparams.bound for i in range(self.dimensionality)]
+        self.bounds_matrix = np.array(
+            [np.array(bound) for bound in self.bounds])
+        self.bounds_0_vec = self.bounds_matrix[:, 0]
+        self.bounds_1_vec = self.bounds_matrix[:, 1]
         self.recombination = hyperparams.Cr
 
     @staticmethod
@@ -86,7 +90,8 @@ class DifferentialEvolution:
         pop_scores.sort(key=lambda x: x[1], reverse=True)
         asc_pop = [obj[0] for obj in pop_scores]
 
-        # 3: crossover - TODO parallelize on GPU
+        # 3: crossover - TODO parallelize on GPU, or perhaps should be in seq
+        start_time = time.time()
         for i in range(pop_size-1):
             X_i, X_ip1 = asc_pop[i], asc_pop[i+1]
             r = random.random()
@@ -100,6 +105,8 @@ class DifferentialEvolution:
                 X_i.cost = c_new
                 asc_pop[i] = X_i
 
+        print("Local Crossover:", time.time()-start_time)
+
         # 4 (modify - clean)
         pop_scores = [[C, C.cost] for C in asc_pop]
         pop_scores.sort(key=lambda x: x[1], reverse=True)
@@ -109,21 +116,33 @@ class DifferentialEvolution:
         gen_peanlty = []
 
         # 5 Nonuniform mutation operation - TODO parallelize on GPU
+        start_time = time.time()
         num_dim = len(self.bounds)
         cont_term = np.exp((-2*iteration)/(1.0*maxiter)) * \
             self.sigmoid((maxiter/2.0)-iteration)
+
         for i in range(pop_size):
             p_m_i = (pop_size-i+1)/(1.0*pop_size)
             X_i = asc_pop[i].vector
             X_i_new = np.zeros(X_i.shape, dtype=np.float32)
-            for j in range(num_dim):
-                b = random.randint(0, 1)
-                r = random.random()
-                if b == 0:
-                    X_i_new[j] = X_i[j]+(self.bounds[j][1]-X_i[j])*r*cont_term
-                else:
-                    X_i_new[j] = X_i[j]+(X_i[j]-self.bounds[j][0])*r*cont_term
+            # for j in range(num_dim):
+            #     b = random.randint(0, 1)
+            #     r = random.random()
+            #     if b == 0:
+            #         X_i_new[j] = X_i[j]+(self.bounds[j][1]-X_i[j])*r*cont_term
+            #     else:
+            #         X_i_new[j] = X_i[j]+(X_i[j]-self.bounds[j][0])*r*cont_term
+            # print("DTYPE:", X_i_new.dtype)
             # print ("X_i",X_i)
+
+            B = np.random.randint(2, size=num_dim).astype('f')
+            R = np.random.rand(num_dim).astype('f')
+            X_i_new = np.where(
+                B < 1, X_i, X_i+(self.bounds_1_vec-X_i)*r*cont_term)
+            X_i_new = np.where(B > 0, X_i_new, X_i_new +
+                               (X_i_new-self.bounds_0_vec)*r*cont_term).astype('f')
+            print("DTYPE:", X_i_new.dtype)
+            # __________
             c_new = self.cost_func(X_i_new)
             c_pres = asc_pop[i].cost
             if c_new < c_pres:
@@ -135,7 +154,7 @@ class DifferentialEvolution:
                 # asc_pop[i]=X_i_new
             else:
                 gen_scores.append(c_pres)
-
+        print("Local Nonuniform mutation:", time.time()-start_time)
         # wat to return
         return asc_pop, gen_scores
 
@@ -184,6 +203,7 @@ class DifferentialEvolution:
             # cycle through each individual in the population
             for j in range(0, popsize):
                 print(j)
+                start_time = time.time()
                 if j % 3 == 0:
                     print("candidate:", j)
 
@@ -213,6 +233,7 @@ class DifferentialEvolution:
                         if (random.random() < Cr):
                             v_donor[i] = x_3[i] + F*(x_1[i] - x_2[i])
                     break
+
                     #v_donor= mutation(x_t.tolist(),x_2.tolist(),x_3.tolist(),Cr,i_rand,F,cost_func)
 
                     # check,count_b=bounds_check(v_donor,self.bounds)
@@ -231,12 +252,13 @@ class DifferentialEvolution:
                     population[j].vector = v_donor
                     population[j].cost = score_donor
 
+                print("Time mutation:", time.time()-start_time)
                 # --- RECOMBINATION (step #3.B) ----------------+
             # _________________________
             time_a = time.time()
             population, gen_scores = self.local_search(
                 population, generation, maxiter)
-            print("time:", time.time()-time_a)
+            print("Local search time:", time.time()-time_a)
 
             # --- SCORE KEEPING --------------------------------+
 

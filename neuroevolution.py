@@ -52,8 +52,7 @@ class NeuroEvolution:
 
             else:
                 # weights
-                layer_weights = candidate[self.decode_bias_lengths[i-1]
-                    :self.decode_weights_lengths[i]]
+                layer_weights = candidate[self.decode_bias_lengths[i-1]:self.decode_weights_lengths[i]]
 
             # print("OO:", layer_weights.shape)
             # print("TO:", self.decode_weights_shapes[i])
@@ -160,7 +159,8 @@ class NeuroEvolution:
         # print("All pop:", self.all_split_population)
 
     def plot_results(self, save_dir, total_scores, split_num):
-        file_path = f"{save_dir}/plots/split_{split_num}"
+        print("all scores:", total_scores)
+        file_path = f"{save_dir}/plots/split_{split_num}.jpg"
         fig, ax = plt.subplots()
         ax.plot(total_scores, [i for i in range(
             len(total_scores))], color="red", marker="o", label="gen_best_loss")
@@ -182,7 +182,7 @@ class NeuroEvolution:
                 cost_func=self.cost_func, dimensionality=self.network_dimensionality)
 
             gen_sol, total_pop, gen_avg_array, total_scores = evolution_algo.evolve(population, len(
-                population), self.num_iters[i])
+                population), self.num_iters)
 
             self.plot_results(self.save_dir, total_scores, i)
 

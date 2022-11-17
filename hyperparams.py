@@ -7,7 +7,7 @@ pop_size = 4
 num_split_parts = 4
 
 # num of iterations for each split part, to have length of num_split_parts
-num_iters = [10, 10, 10]
+num_iters = 1
 
 # ideally taking no of cores=split will decrease the time, or split_cores can be less than the split value
 split_cores = num_split_parts
