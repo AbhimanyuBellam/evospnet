@@ -50,35 +50,38 @@ class NeuroEvolution:
         # print(self.decode_bias_shapes)
         # print("_____")
         temp_net = self.temp_nets[index]
-        for i in range(len(self.decode_weights_lengths)):
-            if i == 0:
-                # weights
-                layer_weights = candidate[0:self.decode_weights_lengths[i]]
 
-            else:
-                # weights
-                layer_weights = candidate[self.decode_bias_lengths[i-1]:self.decode_weights_lengths[i]]
+        with torch.no_grad():
+            for i in range(len(self.decode_weights_lengths)):
+                if i == 0:
+                    # weights
+                    layer_weights = candidate[0:self.decode_weights_lengths[i]]
 
-            # print("OO:", layer_weights.shape)
-            # print("TO:", self.decode_weights_shapes[i])
-            layer_weights = layer_weights.reshape(
-                list(self.decode_weights_shapes[i]))
-            # print(layer_weights.shape)
+                else:
+                    # weights
+                    layer_weights = candidate[self.decode_bias_lengths[i-1]                                              :self.decode_weights_lengths[i]]
 
-            # bias
-            layer_bias = candidate[self.decode_weights_lengths[i]:self.decode_bias_lengths[i]]
-            layer_bias = layer_bias.reshape(list(self.decode_bias_shapes[i]))
+                # print("OO:", layer_weights.shape)
+                # print("TO:", self.decode_weights_shapes[i])
+                layer_weights = layer_weights.reshape(
+                    list(self.decode_weights_shapes[i]))
+                # print(layer_weights.shape)
 
-            # replace weights of temp net with new weights to calc cost -
-            # TODO make it access different basicnet for parallel access, map candidate to network
-            # temp_net = BasicNet().to(self.device)
+                # bias
+                layer_bias = candidate[self.decode_weights_lengths[i]                                       :self.decode_bias_lengths[i]]
+                layer_bias = layer_bias.reshape(
+                    list(self.decode_bias_shapes[i]))
 
-            with torch.no_grad():
+                # replace weights of temp net with new weights to calc cost -
+                # TODO make it access different basicnet for parallel access, map candidate to network
+                # temp_net = BasicNet().to(self.device)
+
                 # for j in range(len(temp_net.layers)):
                 temp_net.layers[i].weight.data = torch.from_numpy(
                     layer_weights).to(self.device)
                 temp_net.layers[i].bias.data = torch.from_numpy(
                     layer_bias).to(self.device)
+
         return temp_net
 
     def cost_func(self, candidate):
@@ -93,21 +96,24 @@ class NeuroEvolution:
         # train_loss=[]
         train_acc = 0
         loss = 0
-        for b, (X_train, y_train) in enumerate(train_loader):
-            # run model, get loss
-            # flatten and evaluate
-            # print("X_shape:", X_train.shape)
-            input_ = X_train.view(hyperparams.batch_size, -1).to(self.device)
-            y_train = y_train.to(self.device)
-            # print("inp shape:", input_.shape)
-            y_pred = network.forward(input_)
-            loss += self.neural_cost_func(y_pred.to(self.device),
-                                          y_train.to(self.device)).data.item()
-            # gen_train_loss.append(loss)
+        network.eval()
+        with torch.no_grad():
+            for b, (X_train, y_train) in enumerate(train_loader):
+                # run model, get loss
+                # flatten and evaluate
+                # print("X_shape:", X_train.shape)
+                input_ = X_train.view(
+                    hyperparams.batch_size, -1).to(self.device)
+                y_train = y_train.to(self.device)
+                # print("inp shape:", input_.shape)
+                y_pred = network.forward(input_)
+                loss += self.neural_cost_func(y_pred.to(self.device),
+                                              y_train.to(self.device)).data.item()
+                # gen_train_loss.append(loss)
 
-            predicted = torch.max(y_pred.data, 1)[1]
+                predicted = torch.max(y_pred.data, 1)[1]
 
-            train_acc += (predicted == y_train).sum()
+                train_acc += (predicted == y_train).sum()
         # print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
         # gen_train_loss_total = sum(gen_train_loss)
         loss /= len(train_loader)
