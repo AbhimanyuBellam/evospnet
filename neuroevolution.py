@@ -35,16 +35,21 @@ class NeuroEvolution:
             'cuda' if torch.cuda.is_available() else 'cpu')
         self.save_dir = hyperparams.save_dir
 
+        self.temp_nets = [BasicNet().to(self.device)
+                          for i in range(self.population_size)]
+        self.counter_cost_fun = 0
+
         # self.train_loader = train_loader
         # self.test_loader = test_loader
 
-    def decode_candidate(self, candidate):
+    def decode_candidate(self, candidate, index):
         # print("Decoding")
         # print(self.decode_weights_lengths)
         # print(self.decode_weights_shapes)
         # print(self.decode_bias_lengths)
         # print(self.decode_bias_shapes)
         # print("_____")
+        temp_net = self.temp_nets[index]
         for i in range(len(self.decode_weights_lengths)):
             if i == 0:
                 # weights
@@ -52,7 +57,7 @@ class NeuroEvolution:
 
             else:
                 # weights
-                layer_weights = candidate[self.decode_bias_lengths[i-1]                                          :self.decode_weights_lengths[i]]
+                layer_weights = candidate[self.decode_bias_lengths[i-1]:self.decode_weights_lengths[i]]
 
             # print("OO:", layer_weights.shape)
             # print("TO:", self.decode_weights_shapes[i])
@@ -61,12 +66,13 @@ class NeuroEvolution:
             # print(layer_weights.shape)
 
             # bias
-            layer_bias = candidate[self.decode_weights_lengths[i]                                   :self.decode_bias_lengths[i]]
+            layer_bias = candidate[self.decode_weights_lengths[i]:self.decode_bias_lengths[i]]
             layer_bias = layer_bias.reshape(list(self.decode_bias_shapes[i]))
 
             # replace weights of temp net with new weights to calc cost -
             # TODO make it access different basicnet for parallel access, map candidate to network
-            temp_net = BasicNet().to(self.device)
+            # temp_net = BasicNet().to(self.device)
+
             with torch.no_grad():
                 # for j in range(len(temp_net.layers)):
                 temp_net.layers[i].weight.data = torch.from_numpy(
@@ -76,11 +82,13 @@ class NeuroEvolution:
         return temp_net
 
     def cost_func(self, candidate):
+        self.counter_cost_fun += 1
+        temp_index = self.counter_cost_fun % self.population_size
         start_time = time.time()
 
-        print("Finding cost")
+        # print("Finding cost")
         # decode candidate
-        network = self.decode_candidate(candidate)
+        network = self.decode_candidate(candidate, temp_index)
 
         # train_loss=[]
         train_acc = 0
@@ -100,17 +108,17 @@ class NeuroEvolution:
             predicted = torch.max(y_pred.data, 1)[1]
 
             train_acc += (predicted == y_train).sum()
-        print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
+        # print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
         # gen_train_loss_total = sum(gen_train_loss)
         loss /= len(train_loader)
 
         # destroy network object
         del network
-        print("Time CF:", time.time()-start_time)
+        # print("Time CF:", time.time()-start_time)
         return loss
 
     def encode_network(self, network, decode_setter=False):
-        print("Encoding network")
+        # print("Encoding network")
         layers = network.layers
         flattened_array = []
         position_weights = 0
@@ -141,7 +149,7 @@ class NeuroEvolution:
             layer_params = weights.cpu().detach().tolist() + \
                 bias.cpu().detach().tolist()
             flattened_array += layer_params
-            print("Flattened_ len:", len(flattened_array))
+            # print("Flattened_ len:", len(flattened_array))
         return np.array(flattened_array, dtype=np.float32)
 
     def initialize_population(self):
@@ -174,7 +182,7 @@ class NeuroEvolution:
 
     def save_weights(self, save_dir, population, gen_sol, split_num):
         file_path = f"{save_dir}/weights/split_{split_num}.pth"
-        best_net = self.decode_candidate(gen_sol)
+        best_net = self.decode_candidate(gen_sol, index=0)
         torch.save(best_net.state_dict(), file_path)
 
     def run_evolutions(self):

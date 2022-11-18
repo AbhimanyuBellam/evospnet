@@ -30,7 +30,7 @@ def cost_func_parallel(cost_func, candidate, cost_tensor_share_all, index):
     # NEW_SCORES.append(cost)
     cost_tensor_share_all[index] += torch.tensor(cost)
     # print("NEW_SCORES:", len(NEW_SCORES))
-    print("cost_tensor_share_all:", cost_tensor_share_all)
+    # print("cost_tensor_share_all:", cost_tensor_share_all)
 
 
 class DifferentialEvolution:
@@ -130,7 +130,7 @@ class DifferentialEvolution:
                 X_i.cost = c_new
                 asc_pop[i] = X_i
 
-        print("Local Crossover:", time.time()-start_time)
+        # print("Local Crossover:", time.time()-start_time)
 
         # 4 (modify - clean)
         pop_scores = [[C, C.cost] for C in asc_pop]
@@ -146,19 +146,20 @@ class DifferentialEvolution:
         cont_term = np.exp((-2*iteration)/(1.0*maxiter)) * \
             self.sigmoid((maxiter/2.0)-iteration)
 
-        threads = []
-        new_costs = [0 for i in range(pop_size)]
-        async_results = []
         self.new_scores = []
-        NEW_SCORES = []
         X = []
         processes = []
         cost_tensor_share_all = [
             torch.tensor(0.0, device=self.device) for k in range(pop_size)]
+
+        cost_f = self.cost_func
+
         for i in range(pop_size):
             p_m_i = (pop_size-i+1)/(1.0*pop_size)
             X_i = asc_pop[i].vector
             X_i_new = np.zeros(X_i.shape, dtype=np.float32)
+
+            # Non vectorized
             # for j in range(num_dim):
             #     b = random.randint(0, 1)
             #     r = random.random()
@@ -169,6 +170,7 @@ class DifferentialEvolution:
             # print("DTYPE:", X_i_new.dtype)
             # print ("X_i",X_i)
 
+            # Vectorized
             B = np.random.randint(2, size=num_dim).astype('f')
             R = np.random.rand(num_dim).astype('f')
             X_i_new = np.where(
@@ -177,13 +179,8 @@ class DifferentialEvolution:
                                (X_i_new-self.bounds_0_vec)*r*cont_term).astype('f')
             # print("DTYPE:", X_i_new.dtype)
             # __________
-            # async_results.append(self.pool.apply(
-            # cost_f, (X_i_new,), callback=self.pool_callback))
-            X.append(X_i_new)
 
-            cost_f = self.cost_func
-            # cost_func_parallel = self.cost_func_parallel
-            # .to(self.device)
+            X.append(X_i_new)
 
             for cost_tensor in cost_tensor_share_all:
                 cost_tensor.share_memory_()
@@ -192,17 +189,9 @@ class DifferentialEvolution:
             processes.append(p)
             processes[-1].start()
 
-        # thread = threading.Thread(target=cost_f, args=(X_i_new,))
-        # with concurrent.futures.ProcessPoolExecutor(max_workers=pop_size) as executor:
-        #     results = executor.map(cost_f, X)
-        #     for new_cost in results:
-        #         self.new_scores.append(new_cost)
-
-            # c_new = self.cost_func(X_i_new)
-        # async_results[-1].get()
         for i in range(len(processes)):
             processes[i].join()
-        print("FINAL cost_tensor_share_all:", cost_tensor_share_all)
+        # print("FINAL cost_tensor_share_all:", cost_tensor_share_all)
         for i in range(pop_size):
             # c_new = async_results[i]
             # c_new = self.new_scores[i]
@@ -218,8 +207,7 @@ class DifferentialEvolution:
                 # asc_pop[i]=X_i_new
             else:
                 gen_scores.append(c_pres)
-        print("Local Nonuniform mutation:", time.time()-start_time)
-        # wat to return
+        # print("Local Nonuniform mutation:", time.time()-start_time)
         # MULTI_PROC_QUEUE.clear()
         return asc_pop, gen_scores
 
@@ -267,17 +255,17 @@ class DifferentialEvolution:
             start = time.time()
             F = self.mutation_factor(hyperparams.F[0], hyperparams.F[1])
             # print("mutate:",F)
-            print('GENERATION:', generation)
+            print('\nGENERATION:', generation)
             # population_new=[]
 
             gen_scores = []  # score keeping
 
             # cycle through each individual in the population
             for j in range(0, popsize):
-                print(j)
+                # print(j)
                 start_time = time.time()
-                if j % 3 == 0:
-                    print("candidate:", j)
+                # if j % 3 == 0:
+                # print("candidate:", j)
 
                 candidates = [i for i in range(0, popsize)]
                 candidates.remove(j)
@@ -324,13 +312,13 @@ class DifferentialEvolution:
                     population[j].vector = v_donor
                     population[j].cost = score_donor
 
-                print("Time mutation:", time.time()-start_time)
+                # print("Time mutation:", time.time()-start_time)
                 # --- RECOMBINATION (step #3.B) ----------------+
             # _________________________
             time_a = time.time()
             population, gen_scores = self.local_search(
                 population, generation, maxiter)
-            print("Local search time:", time.time()-time_a)
+            # print("Local search time:", time.time()-time_a)
 
             # --- SCORE KEEPING --------------------------------+
 
