@@ -52,7 +52,7 @@ class NeuroEvolution:
 
             else:
                 # weights
-                layer_weights = candidate[self.decode_bias_lengths[i-1]:self.decode_weights_lengths[i]]
+                layer_weights = candidate[self.decode_bias_lengths[i-1]                                          :self.decode_weights_lengths[i]]
 
             # print("OO:", layer_weights.shape)
             # print("TO:", self.decode_weights_shapes[i])
@@ -61,7 +61,7 @@ class NeuroEvolution:
             # print(layer_weights.shape)
 
             # bias
-            layer_bias = candidate[self.decode_weights_lengths[i]:self.decode_bias_lengths[i]]
+            layer_bias = candidate[self.decode_weights_lengths[i]                                   :self.decode_bias_lengths[i]]
             layer_bias = layer_bias.reshape(list(self.decode_bias_shapes[i]))
 
             # replace weights of temp net with new weights to calc cost -
@@ -162,8 +162,8 @@ class NeuroEvolution:
         print("all scores:", total_scores)
         file_path = f"{save_dir}/plots/split_{split_num}.jpg"
         fig, ax = plt.subplots()
-        ax.plot(total_scores, [i for i in range(
-            len(total_scores))], color="red", marker="o", label="gen_best_loss")
+        ax.plot([i+1 for i in range(
+            len(total_scores))], total_scores, color="red", marker="o", label="gen_best_loss")
         ax.set_xlabel("Generations", fontsize=10)
         ax.set_ylabel("Cross Entropy Loss", fontsize=10)
         plt.legend(loc="upper left")
@@ -171,6 +171,11 @@ class NeuroEvolution:
                     format='jpeg',
                     dpi=100,
                     bbox_inches='tight')
+
+    def save_weights(self, save_dir, population, gen_sol, split_num):
+        file_path = f"{save_dir}/weights/split_{split_num}.pth"
+        best_net = self.decode_candidate(gen_sol)
+        torch.save(best_net.state_dict(), file_path)
 
     def run_evolutions(self):
         self.initialize_population()
@@ -185,6 +190,7 @@ class NeuroEvolution:
                 population), self.num_iters)
 
             self.plot_results(self.save_dir, total_scores, i)
+            self.save_weights(self.save_dir, total_pop, gen_sol, i)
 
 
 """

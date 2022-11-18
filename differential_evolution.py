@@ -2,14 +2,35 @@ import random
 import copy
 import time
 import numpy as np
-import torch.nn as nn
+import torch
+import threading
+from multiprocessing.pool import ThreadPool
+import multiprocessing
+import concurrent
+
 import hyperparams as hyperparams
+
+from torch.multiprocessing import Pool, Process, set_start_method
+set_start_method('spawn', force=True)
+
+# MULTI_PROC_QUEUE = multiprocessing.Queue()
 
 
 class Candidate(object):
     def __init__(self, vector):
         self.vector = vector
         self.cost = -1
+
+
+NEW_SCORES = []
+
+
+def cost_func_parallel(cost_func, candidate, cost_tensor_share_all, index):
+    cost = cost_func(candidate)
+    # NEW_SCORES.append(cost)
+    cost_tensor_share_all[index] += torch.tensor(cost)
+    # print("NEW_SCORES:", len(NEW_SCORES))
+    print("cost_tensor_share_all:", cost_tensor_share_all)
 
 
 class DifferentialEvolution:
@@ -26,6 +47,10 @@ class DifferentialEvolution:
         self.bounds_0_vec = self.bounds_matrix[:, 0]
         self.bounds_1_vec = self.bounds_matrix[:, 1]
         self.recombination = hyperparams.Cr
+
+        self.pool = ThreadPool(processes=hyperparams.pop_size)
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
 
     @staticmethod
     def sigmoid(x):
@@ -121,6 +146,15 @@ class DifferentialEvolution:
         cont_term = np.exp((-2*iteration)/(1.0*maxiter)) * \
             self.sigmoid((maxiter/2.0)-iteration)
 
+        threads = []
+        new_costs = [0 for i in range(pop_size)]
+        async_results = []
+        self.new_scores = []
+        NEW_SCORES = []
+        X = []
+        processes = []
+        cost_tensor_share_all = [
+            torch.tensor(0.0, device=self.device) for k in range(pop_size)]
         for i in range(pop_size):
             p_m_i = (pop_size-i+1)/(1.0*pop_size)
             X_i = asc_pop[i].vector
@@ -141,9 +175,39 @@ class DifferentialEvolution:
                 B < 1, X_i, X_i+(self.bounds_1_vec-X_i)*r*cont_term)
             X_i_new = np.where(B > 0, X_i_new, X_i_new +
                                (X_i_new-self.bounds_0_vec)*r*cont_term).astype('f')
-            print("DTYPE:", X_i_new.dtype)
+            # print("DTYPE:", X_i_new.dtype)
             # __________
-            c_new = self.cost_func(X_i_new)
+            # async_results.append(self.pool.apply(
+            # cost_f, (X_i_new,), callback=self.pool_callback))
+            X.append(X_i_new)
+
+            cost_f = self.cost_func
+            # cost_func_parallel = self.cost_func_parallel
+            # .to(self.device)
+
+            for cost_tensor in cost_tensor_share_all:
+                cost_tensor.share_memory_()
+            p = torch.multiprocessing.Process(
+                target=cost_func_parallel, args=(cost_f, X_i_new, cost_tensor_share_all, i))
+            processes.append(p)
+            processes[-1].start()
+
+        # thread = threading.Thread(target=cost_f, args=(X_i_new,))
+        # with concurrent.futures.ProcessPoolExecutor(max_workers=pop_size) as executor:
+        #     results = executor.map(cost_f, X)
+        #     for new_cost in results:
+        #         self.new_scores.append(new_cost)
+
+            # c_new = self.cost_func(X_i_new)
+        # async_results[-1].get()
+        for i in range(len(processes)):
+            processes[i].join()
+        print("FINAL cost_tensor_share_all:", cost_tensor_share_all)
+        for i in range(pop_size):
+            # c_new = async_results[i]
+            # c_new = self.new_scores[i]
+            c_new = cost_tensor_share_all[i].item()
+
             c_pres = asc_pop[i].cost
             if c_new < c_pres:
                 # X_i=X_i_new
@@ -156,9 +220,17 @@ class DifferentialEvolution:
                 gen_scores.append(c_pres)
         print("Local Nonuniform mutation:", time.time()-start_time)
         # wat to return
+        # MULTI_PROC_QUEUE.clear()
         return asc_pop, gen_scores
 
+    # @staticmethod
+    # def non_uniform_mutation_parallel(asc_pop, pop_size, cost_func, bounds_1_vec, bounds_0_vec):
+    # @staticmethod
+    def pool_callback(self, result):
+        self.new_scores.append(result)
+
     # To generate mutation factor b/t the given limits
+
     @staticmethod
     def mutation_factor(min_=-1, max_=1):
         mutate = random.uniform(min_, max_)
