@@ -39,6 +39,7 @@ class NeuroEvolution:
                           for i in range(self.population_size)]
         self.counter_cost_fun = 0
 
+        self.bounds = [hyperparams.bound for i in range(self.network_dimensionality)]
         # self.train_loader = train_loader
         # self.test_loader = test_loader
 
@@ -49,7 +50,9 @@ class NeuroEvolution:
         # print(self.decode_bias_lengths)
         # print(self.decode_bias_shapes)
         # print("_____")
-        temp_net = self.temp_nets[index]
+
+        # temp_net = self.temp_nets[index]
+        temp_net = BasicNet()
 
         with torch.no_grad():
             for i in range(len(self.decode_weights_lengths)):
@@ -96,7 +99,7 @@ class NeuroEvolution:
         # train_loss=[]
         train_acc = 0
         loss = 0
-        network.eval()
+        # network.eval()
         with torch.no_grad():
             for b, (X_train, y_train) in enumerate(train_loader):
                 # run model, get loss
@@ -121,6 +124,7 @@ class NeuroEvolution:
         # destroy network object
         del network
         # print("Time CF:", time.time()-start_time)
+        print(loss)
         return loss
 
     def encode_network(self, network, decode_setter=False):
@@ -172,12 +176,15 @@ class NeuroEvolution:
             self.all_split_population.append(split_part_population)
         # print("All pop:", self.all_split_population)
 
-    def plot_results(self, save_dir, total_scores, split_num):
+    def plot_results(self, save_dir, total_scores, gen_avg_scores, split_num):
         print("all scores:", total_scores)
         file_path = f"{save_dir}/plots/split_{split_num}.jpg"
         fig, ax = plt.subplots()
         ax.plot([i+1 for i in range(
-            len(total_scores))], total_scores, color="red", marker="o", label="gen_best_loss")
+            len(total_scores))], total_scores, color="blue", marker="o", label="gen_best_loss")
+        ax.plot([i+1 for i in range(
+            len(total_scores))], gen_avg_scores, color="red", marker="o", label="gen_avg_loss")
+
         ax.set_xlabel("Generations", fontsize=10)
         ax.set_ylabel("Cross Entropy Loss", fontsize=10)
         plt.legend(loc="upper left")
@@ -203,8 +210,120 @@ class NeuroEvolution:
             gen_sol, total_pop, gen_avg_array, total_scores = evolution_algo.evolve(population, len(
                 population), self.num_iters)
 
-            self.plot_results(self.save_dir, total_scores, i)
+            self.plot_results(self.save_dir, total_scores, gen_avg_array, i)
             self.save_weights(self.save_dir, total_pop, gen_sol, i)
+
+    def cost_func_temp(self, candidate):
+        candidate = np.float32(candidate)
+        self.counter_cost_fun += 1
+        temp_index = self.counter_cost_fun % self.population_size
+        start_time = time.time()
+
+        # print("Finding cost")
+        # decode candidate
+        network = self.decode_candidate(candidate, temp_index)
+
+        # train_loss=[]
+        train_acc = 0
+        loss = 0
+        # network.eval()
+        with torch.no_grad():
+            for b, (X_train, y_train) in enumerate(train_loader):
+                # run model, get loss
+                # flatten and evaluate
+                # print("X_shape:", X_train.shape)
+                input_ = X_train.view(
+                    hyperparams.batch_size, -1).to(self.device)
+                y_train = y_train.to(self.device)
+                # print("inp shape:", input_.shape)
+                y_pred = network.forward(input_)
+                loss += self.neural_cost_func(y_pred.to(self.device),
+                                              y_train.to(self.device)).data.item()
+                # gen_train_loss.append(loss)
+
+                predicted = torch.max(y_pred.data, 1)[1]
+
+                train_acc += (predicted == y_train).sum()
+        print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
+        # gen_train_loss_total = sum(gen_train_loss)
+        loss /= len(train_loader)
+
+        # destroy network object
+        del network
+        # print("Time CF:", time.time()-start_time)
+        print("Loss:",loss)
+        return loss
+
+    def cost_func_with_acc(self, candidate):
+        candidate = np.float32(candidate)
+        self.counter_cost_fun += 1
+        temp_index = self.counter_cost_fun % self.population_size
+        start_time = time.time()
+
+        # print("Finding cost")
+        # decode candidate
+        network = self.decode_candidate(candidate, temp_index)
+
+        # train_loss=[]
+        train_acc = 0
+        loss = 0
+        # network.eval()
+        with torch.no_grad():
+            for b, (X_train, y_train) in enumerate(train_loader):
+                # run model, get loss
+                # flatten and evaluate
+                # print("X_shape:", X_train.shape)
+                input_ = X_train.view(
+                    hyperparams.batch_size, -1).to(self.device)
+                y_train = y_train.to(self.device)
+                # print("inp shape:", input_.shape)
+                y_pred = network.forward(input_)
+                loss += self.neural_cost_func(y_pred.to(self.device),
+                                              y_train.to(self.device)).data.item()
+                # gen_train_loss.append(loss)
+
+                predicted = torch.max(y_pred.data, 1)[1]
+
+                train_acc += (predicted == y_train).sum()
+        print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
+        # gen_train_loss_total = sum(gen_train_loss)
+        loss /= len(train_loader)
+
+        # destroy network object
+        del network
+        # print("Time CF:", time.time()-start_time)
+        print("Loss:",loss)
+        return loss, acc
+
+    def run_basic_DE(self):
+        from scipy.optimize import differential_evolution
+
+        print("Initializing population")
+        split_part_population = []
+        
+        for j in range(self.population_size):
+            # each_net = BasicNet()
+            # convert network to 1D array
+            # flattened_net = self.encode_network(each_net)
+            # candidate = Candidate(flattened_net)
+            vector = np.random.uniform(-1,1, self.network_dimensionality)
+            split_part_population.append(vector)
+        print (split_part_population)
+        split_part_population = np.array(split_part_population)
+        print (split_part_population.shape)
+
+        self.gen_vectors = []
+        def store_callback(result, convergence):
+            self.gen_vectors.append(result)
+            print (self.gen_vectors)
+
+        result = differential_evolution(self.cost_func_temp, self.bounds, callback = store_callback, polish=False, init = split_part_population, maxiter=2, workers = 8, seed=1, disp = True)
+        print (result.x, result.fun )
+
+        # evaluate cost for every gen best vector again for plots
+        all_gen_scores = []
+        # for cand_vec in self.gen_vectors:
+        #     loss = 
 
 
 """
@@ -219,4 +338,5 @@ def combine_in_order_of_fitness(part1, part2):
 
 if __name__ == "__main__":
     neuroevolution = NeuroEvolution()
-    neuroevolution.run_evolutions()
+    # neuroevolution.run_evolutions()
+    neuroevolution.run_basic_DE()
