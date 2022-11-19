@@ -43,4 +43,4 @@ with torch.no_grad():
     loss /= len(train_loader)
 
 print(loss)
-print(train_acc)
+print(train_acc/len(train_loader))
