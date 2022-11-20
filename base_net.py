@@ -10,23 +10,40 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
 
+# class BasicNet(nn.Module):
+#     # to have = [120, 84]
+#     def __init__(self, input_size=784, output_size=10, layers=[10, 4]):
+#         super().__init__()
+#         self.d1 = nn.Linear(input_size, layers[0])  # hidden Layer 1
+#         self.d2 = nn.Linear(layers[0], layers[1])
+#         self.d3 = nn.Linear(layers[1], output_size)  # output Layer
+
+#         self.layers = [self.d1, self.d2, self.d3]
+
+#     def forward(self, X):
+#         # print(X.shape)
+#         X = F.relu(self.layers[0](X))
+#         # print(X.shape)
+#         X = F.relu(self.layers[1](X))
+#         # print(X.shape)
+#         X = self.layers[2](X)
+#         # print(X.shape)
+#         return F.log_softmax(X, dim=1)
+
 class BasicNet(nn.Module):
     # to have = [120, 84]
-    def __init__(self, input_size=784, output_size=10, layers=[10, 4]):
+    def __init__(self, input_size=784, output_size=10, layers=[5]):
         super().__init__()
-        self.d1 = nn.Linear(input_size, layers[0])  # hidden Layer 1
-        self.d2 = nn.Linear(layers[0], layers[1])
-        self.d3 = nn.Linear(layers[1], output_size)  # output Layer
+        self.d1 = nn.Linear(input_size, layers[0])
+        self.d2 = nn.Linear(layers[0], output_size)
 
-        self.layers = [self.d1, self.d2, self.d3]
+        self.layers = [self.d1, self.d2]
 
     def forward(self, X):
         # print(X.shape)
         X = F.relu(self.layers[0](X))
         # print(X.shape)
-        X = F.relu(self.layers[1](X))
-        # print(X.shape)
-        X = self.layers[2](X)
+        X = self.layers[1](X)
         # print(X.shape)
         return F.log_softmax(X, dim=1)
 

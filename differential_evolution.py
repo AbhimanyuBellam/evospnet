@@ -160,42 +160,44 @@ class DifferentialEvolution:
             X_i_new = np.zeros(X_i.shape, dtype=np.float32)
 
             # Non vectorized
-            # for j in range(num_dim):
-            #     b = random.randint(0, 1)
-            #     r = random.random()
-            #     if b == 0:
-            #         X_i_new[j] = X_i[j]+(self.bounds[j][1]-X_i[j])*r*cont_term
-            #     else:
-            #         X_i_new[j] = X_i[j]+(X_i[j]-self.bounds[j][0])*r*cont_term
+            for j in range(num_dim):
+                b = random.randint(0, 1)
+                r = random.random()
+                if b == 0:
+                    X_i_new[j] = X_i[j]+(self.bounds[j][1]-X_i[j])*r*cont_term
+                else:
+                    X_i_new[j] = X_i[j]+(X_i[j]-self.bounds[j][0])*r*cont_term
             # print("DTYPE:", X_i_new.dtype)
             # print ("X_i",X_i)
 
             # Vectorized
-            B = np.random.randint(2, size=num_dim).astype('f')
-            R = np.random.rand(num_dim).astype('f')
-            X_i_new = np.where(
-                B < 1, X_i, X_i+(self.bounds_1_vec-X_i)*r*cont_term)
-            X_i_new = np.where(B > 0, X_i_new, X_i_new +
-                               (X_i_new-self.bounds_0_vec)*r*cont_term).astype('f')
+            # B = np.random.randint(2, size=num_dim).astype('f')
+            # R = np.random.rand(num_dim).astype('f')
+            # X_i_new = np.where(
+            #     B < 1, X_i, X_i+(self.bounds_1_vec-X_i)*r*cont_term)
+            # X_i_new = np.where(B > 0, X_i_new, X_i_new +
+            #                    (X_i_new-self.bounds_0_vec)*r*cont_term).astype('f')
             # print("DTYPE:", X_i_new.dtype)
             # __________
 
-            X.append(X_i_new)
+        #     X.append(X_i_new)
 
-            for cost_tensor in cost_tensor_share_all:
-                cost_tensor.share_memory_()
-            p = torch.multiprocessing.Process(
-                target=cost_func_parallel, args=(cost_f, X_i_new, cost_tensor_share_all, i))
-            processes.append(p)
-            processes[-1].start()
+        #     for cost_tensor in cost_tensor_share_all:
+        #         cost_tensor.share_memory_()
+        #     p = torch.multiprocessing.Process(
+        #         target=cost_func_parallel, args=(cost_f, X_i_new, cost_tensor_share_all, i))
+        #     processes.append(p)
+        #     processes[-1].start()
 
-        for i in range(len(processes)):
-            processes[i].join()
-        # print("FINAL cost_tensor_share_all:", cost_tensor_share_all)
-        for i in range(pop_size):
+        # for i in range(len(processes)):
+        #     processes[i].join()
+        # # print("FINAL cost_tensor_share_all:", cost_tensor_share_all)
+        # for i in range(pop_size):
             # c_new = async_results[i]
             # c_new = self.new_scores[i]
-            c_new = cost_tensor_share_all[i].item()
+
+            c_new = self.cost_func(X_i_new)
+            # c_new = cost_tensor_share_all[i].item()
 
             c_pres = asc_pop[i].cost
             if c_new < c_pres:

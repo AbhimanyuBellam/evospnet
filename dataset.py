@@ -18,3 +18,6 @@ train_loader = DataLoader(
     train_dataset, batch_size=hyperparams.batch_size, shuffle=False)
 test_loader = DataLoader(
     test_dataset, batch_size=hyperparams.batch_size, shuffle=False)
+
+print(len(train_loader))
+print(len(test_loader))

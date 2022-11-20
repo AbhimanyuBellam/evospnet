@@ -1,3 +1,4 @@
+import copy
 import torch
 import os
 import torch.nn as nn
@@ -5,23 +6,40 @@ import torch.nn.functional as F
 from base_net import BasicNet
 
 
+# class CombLevel1(nn.Module):
+#     # to have = [120, 84]
+#     def __init__(self, input_size=784, output_size=10, layers=[20, 8]):
+#         super().__init__()
+#         self.d1 = nn.Linear(input_size, layers[0])  # hidden Layer 1
+#         self.d2 = nn.Linear(layers[0], layers[1])
+#         self.d3 = nn.Linear(layers[1], output_size)  # output Layer
+
+#         self.layers = [self.d1, self.d2, self.d3]
+
+#     def forward(self, X):
+#         # print(X.shape)
+#         X = F.relu(self.layers[0](X))
+#         # print(X.shape)
+#         X = F.relu(self.layers[1](X))
+#         # print(X.shape)
+#         X = self.layers[2](X)
+#         # print(X.shape)
+#         return F.log_softmax(X, dim=1)
+
 class CombLevel1(nn.Module):
     # to have = [120, 84]
-    def __init__(self, input_size=784, output_size=20, layers=[10, 8]):
+    def __init__(self, input_size=784, output_size=10, layers=[10]):
         super().__init__()
         self.d1 = nn.Linear(input_size, layers[0])  # hidden Layer 1
-        self.d2 = nn.Linear(layers[0], layers[1])
-        self.d3 = nn.Linear(layers[1], output_size)  # output Layer
+        self.d3 = nn.Linear(layers[0], output_size)  # output Layer
 
-        self.layers = [self.d1, self.d2, self.d3]
+        self.layers = [self.d1, self.d3]
 
     def forward(self, X):
         # print(X.shape)
         X = F.relu(self.layers[0](X))
         # print(X.shape)
-        X = F.relu(self.layers[1](X))
-        # print(X.shape)
-        X = self.layers[2](X)
+        X = self.layers[1](X)
         # print(X.shape)
         return F.log_softmax(X, dim=1)
 
@@ -35,10 +53,10 @@ for i in range(len(model_names)):
 print(model_paths)
 
 model1 = BasicNet()
-model1.load_state_dict(torch.load(model_paths[0]))
+# model1.load_state_dict(torch.load(model_paths[0]))
 
 model2 = BasicNet()
-model2.load_state_dict(torch.load(model_paths[1]))
+# model2.load_state_dict(torch.load(model_paths[1]))
 
 model_comb1 = CombLevel1()
 
@@ -68,3 +86,7 @@ def combine(net1, net2, combined_model_base):
 print(model_comb1.layers[0].weight.data)
 changed_model = combine(model1, model2, model_comb1)
 print("\n", changed_model.layers[0].weight.data)
+
+print("DIFF:\n")
+print(changed_model.layers[0].weight.data -
+      model_comb1.layers[0].weight.data)

@@ -12,6 +12,7 @@ from differential_evolution import DifferentialEvolution
 from base_net import BasicNet
 from dataset import train_loader, test_loader
 from differential_evolution import Candidate
+from initialization import initialization
 
 
 class NeuroEvolution:
@@ -39,7 +40,8 @@ class NeuroEvolution:
                           for i in range(self.population_size)]
         self.counter_cost_fun = 0
 
-        self.bounds = [hyperparams.bound for i in range(self.network_dimensionality)]
+        self.bounds = [hyperparams.bound for i in range(
+            self.network_dimensionality)]
         # self.train_loader = train_loader
         # self.test_loader = test_loader
 
@@ -244,14 +246,14 @@ class NeuroEvolution:
                 predicted = torch.max(y_pred.data, 1)[1]
 
                 train_acc += (predicted == y_train).sum()
-        print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
+        # print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
         # gen_train_loss_total = sum(gen_train_loss)
         loss /= len(train_loader)
 
         # destroy network object
         del network
         # print("Time CF:", time.time()-start_time)
-        print("Loss:",loss)
+        # print("Loss:", loss)
         return loss
 
     def cost_func_with_acc(self, candidate):
@@ -260,19 +262,13 @@ class NeuroEvolution:
         temp_index = self.counter_cost_fun % self.population_size
         start_time = time.time()
 
-        # print("Finding cost")
-        # decode candidate
         network = self.decode_candidate(candidate, temp_index)
 
-        # train_loss=[]
         train_acc = 0
         loss = 0
         # network.eval()
         with torch.no_grad():
             for b, (X_train, y_train) in enumerate(train_loader):
-                # run model, get loss
-                # flatten and evaluate
-                # print("X_shape:", X_train.shape)
                 input_ = X_train.view(
                     hyperparams.batch_size, -1).to(self.device)
                 y_train = y_train.to(self.device)
@@ -280,10 +276,8 @@ class NeuroEvolution:
                 y_pred = network.forward(input_)
                 loss += self.neural_cost_func(y_pred.to(self.device),
                                               y_train.to(self.device)).data.item()
-                # gen_train_loss.append(loss)
 
                 predicted = torch.max(y_pred.data, 1)[1]
-
                 train_acc += (predicted == y_train).sum()
 
         train_acc = (train_acc)/(b*hyperparams.batch_size)
@@ -294,7 +288,7 @@ class NeuroEvolution:
         # destroy network object
         del network
         # print("Time CF:", time.time()-start_time)
-        print("Loss:",loss)
+        print("Loss:", loss)
         return loss, train_acc
 
     def cost_func_test_set_with_acc(self, candidate):
@@ -302,20 +296,13 @@ class NeuroEvolution:
         self.counter_cost_fun += 1
         temp_index = self.counter_cost_fun % self.population_size
         start_time = time.time()
-
-        # print("Finding cost")
-        # decode candidate
         network = self.decode_candidate(candidate, temp_index)
 
-        # train_loss=[]
         test_acc = 0
         loss = 0
         # network.eval()
         with torch.no_grad():
             for b, (X_test, y_test) in enumerate(test_loader):
-                # run model, get loss
-                # flatten and evaluate
-                # print("X_shape:", X_train.shape)
                 input_ = X_test.view(
                     hyperparams.batch_size, -1).to(self.device)
                 y_test = y_test.to(self.device)
@@ -328,14 +315,14 @@ class NeuroEvolution:
 
                 test_acc += (predicted == y_test).sum()
         test_acc = (test_acc)/(b*hyperparams.batch_size)
-        print("Test acc:", test_acc)        
+        # print("Test acc:", test_acc)
         # gen_train_loss_total = sum(gen_train_loss)
         loss /= len(test_loader)
 
         # destroy network object
         del network
         # print("Time CF:", time.time()-start_time)
-        print("Loss:",loss)
+        # print("Loss:", loss)
         return loss, test_acc
 
     def run_basic_DE(self):
@@ -343,25 +330,35 @@ class NeuroEvolution:
 
         print("Initializing population")
         split_part_population = []
-        
-        for j in range(self.population_size):
+
+        # init_vectors = initialization(
+        #     np.array(self.bounds), self.population_size, technique=2)
+
+        for i in range(self.population_size):
             # each_net = BasicNet()
             # convert network to 1D array
             # flattened_net = self.encode_network(each_net)
             # candidate = Candidate(flattened_net)
-            vector = np.random.uniform(-1,1, self.network_dimensionality)
+            vector = np.random.uniform(-1, 1, self.network_dimensionality)
+            # split_part_population.append(np.array(init_vectors[i]))
             split_part_population.append(vector)
-        print (split_part_population)
+
+        print(split_part_population)
         split_part_population = np.array(split_part_population)
-        print (split_part_population.shape)
+        print(split_part_population.shape)
 
         self.gen_vectors = []
+        self.convergence_history = []
+
         def store_callback(result, convergence):
             self.gen_vectors.append(result)
-            print (self.gen_vectors)
+            self.convergence_history.append(convergence)
+            # print("Converagence:", convergence)
+            # print(self.gen_vectors)
 
-        result = differential_evolution(self.cost_func_temp, self.bounds, callback = store_callback, polish=False, init = split_part_population, maxiter=hyperparams.num_iters, workers = 8, seed=1, disp = True)
-        print (result.x, result.fun )
+        result = differential_evolution(self.cost_func_temp, self.bounds, callback=store_callback, polish=False,
+                                        init=split_part_population, maxiter=hyperparams.num_iters, workers=hyperparams.split_cores, seed=1, disp=True)
+        print("RESULT:", result.x, result.fun)
 
         file_path = f"{self.save_dir}/weights/split_test.pth"
         best_net = self.decode_candidate(result.x, index=0)
@@ -369,7 +366,7 @@ class NeuroEvolution:
 
         # evaluate cost for every gen best vector again for plots
 
-    def generate_results(self):    
+    def generate_results(self):
         all_gen_train_loss = []
         all_gen_train_acc = []
 
@@ -377,27 +374,29 @@ class NeuroEvolution:
             loss, acc = self.cost_func_with_acc(cand_vec)
             all_gen_train_loss.append(loss)
             all_gen_train_acc.append(acc.item())
-        print (" ACC:",all_gen_train_acc )
-        print ("LOSS:", all_gen_train_loss)
+        print(" ACC:", all_gen_train_acc)
+        print("LOSS:", all_gen_train_loss)
         file_path = f"{self.save_dir}/plots/split_single_train.jpg"
         x = [i+1 for i in range(len(all_gen_train_loss))]
 
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
-        
+
         ax1.plot(x, all_gen_train_loss, 'b-')
         ax2.plot(x, all_gen_train_acc, 'g-')
 
         ax1.set_xlabel("Generations")
         ax1.set_ylabel("Train Cross Entropy Loss", color='b')
         ax2.set_ylabel("Train Accuracy", color='g')
-        plt.savefig(file_path)
-        # plt.legend(loc="upper left")
-        # fig.savefig(file_path,
-        #             format='jpeg',
-        #             dpi=100,
-        #             bbox_inches='tight')
-        
+        fig.savefig(file_path)
+
+        file_path2 = f"{self.save_dir}/plots/split_single_train_convergence.jpg"
+        fig2, ax3 = plt.subplots()
+        ax3.plot([i+1 for i in range(len(self.convergence_history))],
+                 self.convergence_history)
+        ax3.set_xlabel("Generations")
+        ax3.set_ylabel("Population Convergence")
+        fig2.savefig(file_path2)
 
     def generate_test_results(self):
         all_gen_test_loss = []
@@ -407,23 +406,21 @@ class NeuroEvolution:
             loss, acc = self.cost_func_test_set_with_acc(cand_vec)
             all_gen_test_loss.append(loss)
             all_gen_test_acc.append(acc.item())
-        
+
         file_path = f"{self.save_dir}/plots/split_single_test.jpg"
         x = [i+1 for i in range(len(all_gen_test_loss))]
 
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
-        
+
         ax1.plot(x, all_gen_test_loss, 'b-')
         ax2.plot(x, all_gen_test_acc, 'g-')
 
         ax1.set_xlabel("Generations")
         ax1.set_ylabel("Test Cross Entropy Loss", color='b')
         ax2.set_ylabel("Test Accuracy", color='g')
-        plt.savefig(file_path)
-
-    
-
+        # plt.savefig(file_path)
+        fig.savefig(file_path)
 
 
 """
@@ -439,6 +436,8 @@ def combine_in_order_of_fitness(part1, part2):
 if __name__ == "__main__":
     neuroevolution = NeuroEvolution()
     # neuroevolution.run_evolutions()
+    start = time.time()
     neuroevolution.run_basic_DE()
     neuroevolution.generate_results()
     neuroevolution.generate_test_results()
+    print("Total time:", time.time()-start)
