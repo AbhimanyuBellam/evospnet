@@ -4,7 +4,7 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
-
+import sys
 import matplotlib.pyplot as plt
 
 import hyperparams as hyperparams
@@ -246,7 +246,7 @@ class NeuroEvolution:
                 predicted = torch.max(y_pred.data, 1)[1]
 
                 train_acc += (predicted == y_train).sum()
-        # print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
+        # print("\nTrain acc:", (train_acc)/(b*hyperparams.batch_size))
         # gen_train_loss_total = sum(gen_train_loss)
         loss /= len(train_loader)
 
@@ -366,6 +366,63 @@ class NeuroEvolution:
 
         # evaluate cost for every gen best vector again for plots
 
+    # initialization from ensemble of SGD outputs
+    def run_SDG_init_DE(self):
+        from scipy.optimize import differential_evolution
+        import os
+
+        root_dir = "results/basic_net_res/weights/sgd/basicnet"
+        model_names = os.listdir(root_dir)
+        model_paths = []
+        for i in range(len(model_names)):
+            model_paths.append(f"{root_dir}/{model_names[i]}")
+
+        print("Initializing population")
+        split_part_population = []
+
+        # init_vectors = initialization(
+        #     np.array(self.bounds), self.population_size, technique=2)
+
+        for i in range(len(model_paths)):
+            each_net = BasicNet()
+            # convert network to 1D array
+            each_net.load_state_dict(torch.load(model_paths[i]))
+
+            flattened_net = self.encode_network(each_net)
+            split_part_population.append(flattened_net)
+
+        # for i in range(self.population_size - len(model_paths)):
+        #     vector = np.random.uniform(-1, 1, self.network_dimensionality)
+        #     # split_part_population.append(np.array(init_vectors[i]))
+        #     split_part_population.append(vector)
+
+        # for i in range(len(split_part_population)):
+        #     # encoded = self.encode_network(split_part_population[i])
+        #     # decoded = self.decode_candidate(encoded, index=0)
+        #     print("Train loss:", self.cost_func_temp(split_part_population[i]))
+        # sys.exit()
+
+        # print(split_part_population)
+        split_part_population = np.array(split_part_population)
+        print(split_part_population.shape)
+
+        self.gen_vectors = []
+        self.convergence_history = []
+
+        def store_callback(result, convergence):
+            self.gen_vectors.append(result)
+            self.convergence_history.append(convergence)
+            # print("Converagence:", convergence)
+            # print(self.gen_vectors)
+
+        result = differential_evolution(self.cost_func_temp, self.bounds, callback=store_callback, polish=False, x0=split_part_population[0],
+                                        init=split_part_population, maxiter=hyperparams.num_iters, workers=hyperparams.split_cores, disp=True)
+        print("RESULT:", result.x, result.fun)
+
+        file_path = f"{self.save_dir}/weights/split_from_SGD_ensemble.pth"
+        best_net = self.decode_candidate(result.x, index=0)
+        torch.save(best_net.state_dict(), file_path)
+
     def generate_results(self):
         all_gen_train_loss = []
         all_gen_train_acc = []
@@ -437,7 +494,8 @@ if __name__ == "__main__":
     neuroevolution = NeuroEvolution()
     # neuroevolution.run_evolutions()
     start = time.time()
-    neuroevolution.run_basic_DE()
+    # neuroevolution.run_basic_DE()
+    neuroevolution.run_SDG_init_DE()
     neuroevolution.generate_results()
     neuroevolution.generate_test_results()
     print("Total time:", time.time()-start)

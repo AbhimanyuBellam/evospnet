@@ -5,17 +5,21 @@ import torch.nn as nn
 from base_net import BasicNet
 import os
 import hyperparams as hyperparams
+from combine import CombLevel1
 
-root_dir = "/home/iec/abhimanyu/etc/splitnet/results/basic_net_res"
-model_names = os.listdir(f"{root_dir}/weights")
-model_paths = []
-for i in range(len(model_names)):
-    model_paths.append(f"{root_dir}/weights/{model_names[i]}")
+# root_dir = "/home/iec/abhimanyu/etc/splitnet/results/basic_net_res"
+# model_names = os.listdir(f"{root_dir}/weights")
+# model_paths = []
+# for i in range(len(model_names)):
+#     model_paths.append(f"{root_dir}/weights/{model_names[i]}")
 
-model_path = "/home/iec/abhimanyu/etc/splitnet/results/basic_net_res/weights/split_test.pth"
+model_path = "results/basic_net_res/weights/sgd/combined_models/comb_1.pth"
+# model_path = "results/basic_net_res/weights/tests/encode_decode1.pth"
 
-network = BasicNet()
+# network = BasicNet()
+network = CombLevel1()
 network.load_state_dict(torch.load(model_path))
+print(network.layers[0].weight.data)
 
 device = "cuda:0"
 neural_cost_func = nn.CrossEntropyLoss()
@@ -42,7 +46,7 @@ with torch.no_grad():
         train_acc += (predicted == y_train).sum()
     # print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
     # gen_train_loss_total = sum(gen_train_loss)
-    loss /= len(train_loader)
+loss /= len(train_loader)
 
 print(loss)
 print(train_acc/len(train_loader))
@@ -68,7 +72,7 @@ with torch.no_grad():
         train_acc += (predicted == y_train).sum()
     # print("Train acc:", (train_acc)/(b*hyperparams.batch_size))
     # gen_train_loss_total = sum(gen_train_loss)
-    loss /= len(test_loader)
+loss /= len(test_loader)
 
 print(loss)
 print(train_acc/len(test_loader))
