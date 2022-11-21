@@ -13,11 +13,13 @@ from combine import CombLevel1
 # for i in range(len(model_names)):
 #     model_paths.append(f"{root_dir}/weights/{model_names[i]}")
 
-model_path = "results/basic_net_res/weights/sgd/combined_models/comb_1.pth"
+# model_path = "results/basic_net_res/weights/sgd/combined_models/comb_1.pth"
+# model_path = "results/basic_net_res/weights/split_from_SGD_ensemble.pth"
+model_path = "results/basic_net_res/weights/sgd/basicnet/basicnet_37.pth"
 # model_path = "results/basic_net_res/weights/tests/encode_decode1.pth"
 
-# network = BasicNet()
-network = CombLevel1()
+network = BasicNet()
+# network = CombLevel1()
 network.load_state_dict(torch.load(model_path))
 print(network.layers[0].weight.data)
 

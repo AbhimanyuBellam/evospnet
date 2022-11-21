@@ -383,19 +383,32 @@ class NeuroEvolution:
         # init_vectors = initialization(
         #     np.array(self.bounds), self.population_size, technique=2)
 
+        best_cand_index = None
+        temp_score = 99999999
+        # initialize and get best cand
         for i in range(len(model_paths)):
             each_net = BasicNet()
             # convert network to 1D array
             each_net.load_state_dict(torch.load(model_paths[i]))
-
             flattened_net = self.encode_network(each_net)
+            score = self.cost_func_temp(flattened_net)
+            if score < temp_score:
+                best_cand_index = i
+                temp_score = score
+                print("path:", model_paths[i])
+                print(best_cand_index, temp_score)
             split_part_population.append(flattened_net)
 
-        # for i in range(self.population_size - len(model_paths)):
-        #     vector = np.random.uniform(-1, 1, self.network_dimensionality)
-        #     # split_part_population.append(np.array(init_vectors[i]))
-        #     split_part_population.append(vector)
+        print("From SGD len:", len(split_part_population))
+        # sys.exit()
 
+        for i in range(self.population_size - len(model_paths)):
+            vector = np.random.uniform(-1, 1, self.network_dimensionality)
+            # split_part_population.append(np.array(init_vectors[i]))
+            split_part_population.append(vector)
+        print("From SGD + uniform len:", len(split_part_population))
+
+        # testing
         # for i in range(len(split_part_population)):
         #     # encoded = self.encode_network(split_part_population[i])
         #     # decoded = self.decode_candidate(encoded, index=0)
@@ -415,7 +428,7 @@ class NeuroEvolution:
             # print("Converagence:", convergence)
             # print(self.gen_vectors)
 
-        result = differential_evolution(self.cost_func_temp, self.bounds, callback=store_callback, polish=False, x0=split_part_population[0],
+        result = differential_evolution(self.cost_func_temp, self.bounds, callback=store_callback, polish=False, x0=split_part_population[best_cand_index],
                                         init=split_part_population, maxiter=hyperparams.num_iters, workers=hyperparams.split_cores, disp=True)
         print("RESULT:", result.x, result.fun)
 

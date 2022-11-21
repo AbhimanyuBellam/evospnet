@@ -1,7 +1,9 @@
 
-# Hyper parameters :
+# Hyper parameters
+
 # no of candidate solutions in the population
-pop_size = 140
+# If using DE initialised with SGD ensemble, ensure pop_size is equal to number of models available
+pop_size = 112
 
 # how many parts are made with the given input
 num_split_parts = 1
@@ -31,10 +33,11 @@ total_gen_integral = 300
 
 
 # bounds for DE
-bound = [-1, 1]
+# bound = [-5.9, 4.7]
+bound = [-15, 15]
 
 # mutation factor range and it can be between [0,2]
-F = [-1, 1]
+F = [0, 1]
 
 # crossover probability and it can be between [0,1]
 Cr = 0.8

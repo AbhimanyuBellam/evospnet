@@ -46,12 +46,6 @@ for (X_train, y_train) in train_loader:
     print('y_train:', y_train.size(), 'type:', y_train.type())
     break
 
-model = BasicNet().to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-criterion = nn.CrossEntropyLoss()
-
-print(model)
-
 
 def train(losst, acct, epoch, model_save_path, log_interval=200):
     # Set model to training mode
@@ -130,15 +124,36 @@ def validate(loss_vector, accuracy_vector):
 lossv, accv = [], []
 losst, acct = [], []
 
+# ensemble
+# for i in range(56):
+#     model = BasicNet().to(device)
+#     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+#     criterion = nn.CrossEntropyLoss()
 
-for i in range(56):
-    start_time = time.time()
-    for epoch in range(1, epochs + 1):
-        model_save_path = f"results/basic_net_res/weights/sgd/basicnet/basicnet_{i}.pth"
-        train(losst, acct, epoch, model_save_path)
-        validate(lossv, accv)
+#     print(model)
+#     start_time = time.time()
+#     for epoch in range(1, epochs + 1):
+#
+#         model_save_path = f"results/basic_net_res/weights/sgd/basicnet/basicnet_{i}.pth"
+#         train(losst, acct, epoch, model_save_path)
+#         validate(lossv, accv)
 
-    print("Time:", time.time()-start_time)
+#     print("Time:", time.time()-start_time)
+
+# single
+model = BasicNet().to(device)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+criterion = nn.CrossEntropyLoss()
+
+print(model)
+start_time = time.time()
+for epoch in range(1, epochs + 1):
+
+    model_save_path = f"results/basic_net_res/weights/sgd/basicnet_sgd_test.pth"
+    train(losst, acct, epoch, model_save_path)
+    validate(lossv, accv)
+
+print("Time:", time.time()-start_time)
 
 x = [i+1 for i in range(epochs)]
 
