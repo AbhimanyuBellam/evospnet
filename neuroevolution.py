@@ -45,6 +45,24 @@ class NeuroEvolution:
         # self.train_loader = train_loader
         # self.test_loader = test_loader
 
+    def generate_bounds(self, network=BasicNet()):
+        # net = BasicNet()
+        self.bounds = []
+        layers = network.layers
+        for layer in layers:
+            # weights
+            weights = layer.weight.flatten()
+            weights_len = len(weights)
+            for i in range(weights_len):
+                self.bounds.append(hyperparams.bound)
+
+            # bias
+            bias = layer.bias.flatten()
+            bias_len = len(bias)
+            for i in range(bias_len):
+                self.bounds.append(hyperparams.bias_bound)
+        # print("bounds:", self.bounds)
+
     def decode_candidate(self, candidate, index):
         # print("Decoding")
         # print(self.decode_weights_lengths)
@@ -64,7 +82,7 @@ class NeuroEvolution:
 
                 else:
                     # weights
-                    layer_weights = candidate[self.decode_bias_lengths[i-1]                                              :self.decode_weights_lengths[i]]
+                    layer_weights = candidate[self.decode_bias_lengths[i-1]:self.decode_weights_lengths[i]]
 
                 # print("OO:", layer_weights.shape)
                 # print("TO:", self.decode_weights_shapes[i])
@@ -73,7 +91,7 @@ class NeuroEvolution:
                 # print(layer_weights.shape)
 
                 # bias
-                layer_bias = candidate[self.decode_weights_lengths[i]                                       :self.decode_bias_lengths[i]]
+                layer_bias = candidate[self.decode_weights_lengths[i]:self.decode_bias_lengths[i]]
                 layer_bias = layer_bias.reshape(
                     list(self.decode_bias_shapes[i]))
 
@@ -327,7 +345,7 @@ class NeuroEvolution:
 
     def run_basic_DE(self):
         from scipy.optimize import differential_evolution
-
+        self.generate_bounds()
         print("Initializing population")
         split_part_population = []
 
@@ -371,6 +389,7 @@ class NeuroEvolution:
         from scipy.optimize import differential_evolution
         import os
 
+        self.generate_bounds()
         root_dir = "results/basic_net_res/weights/sgd/basicnet"
         model_names = os.listdir(root_dir)
         model_paths = []
@@ -444,8 +463,8 @@ class NeuroEvolution:
             loss, acc = self.cost_func_with_acc(cand_vec)
             all_gen_train_loss.append(loss)
             all_gen_train_acc.append(acc.item())
-        print(" ACC:", all_gen_train_acc)
-        print("LOSS:", all_gen_train_loss)
+        # print(" ACC:", all_gen_train_acc)
+        # print("LOSS:", all_gen_train_loss)
         file_path = f"{self.save_dir}/plots/split_single_train.jpg"
         x = [i+1 for i in range(len(all_gen_train_loss))]
 
@@ -507,8 +526,9 @@ if __name__ == "__main__":
     neuroevolution = NeuroEvolution()
     # neuroevolution.run_evolutions()
     start = time.time()
-    # neuroevolution.run_basic_DE()
-    neuroevolution.run_SDG_init_DE()
+    neuroevolution.run_basic_DE()
+    # neuroevolution.run_SDG_init_DE()
+    print("Evolution time:", time.time()-start)
     neuroevolution.generate_results()
     neuroevolution.generate_test_results()
     print("Total time:", time.time()-start)
