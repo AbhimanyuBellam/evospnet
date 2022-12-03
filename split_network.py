@@ -179,7 +179,9 @@ def net_weights_avg(net):
     sum = 0
     for layer_num in range(len(net.layers)):
         net_layer_weights = net.layers[layer_num].weight
+        net_layer_bias = net.layers[layer_num].bias
         sum += torch.sum(net_layer_weights)
+        sum += torch.sum(net_layer_bias)
 
     return sum
 
@@ -192,6 +194,20 @@ if __name__ == "__main__":
     # basic_net.to(device)
     # print(net4)
 
+    '''
+    Loop invariance is not exactly true:
+        The combining of 5s to 10s to 20s to 40:
+                40
+            20       20
+        10   10    10   10
+       5 5   5 5  5 5  5  5 
+
+       Is not exactly the same as combining all 5s to 40: 
+                40
+       5 5   5 5  5 5  5  5 
+
+       Due to biasa being averaged when combining. 
+    '''
     # type 1 - binary
     l1s = [NetL1() for i in range(8)]
     l2s = combine_group_binary(l1s, NetL2)
