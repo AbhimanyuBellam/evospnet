@@ -86,13 +86,13 @@ def combine_binary(net1, net2, combined_model_base=NetL2()):
                 combined_bias = torch.cat(
                     (net1_layer_bias, net2_layer_bias), 0)
 
-            print(
-                "Actual:", combined_model_base.layers[layer_num].weight.data.shape)
-            print("to:", combined_weights_matrix.shape)
+            # print(
+            #     "Actual:", combined_model_base.layers[layer_num].weight.data.shape)
+            # print("to:", combined_weights_matrix.shape)
 
-            print("Ac Bias:", combined_bias.shape)
-            print("To bias:",
-                  combined_model_base.layers[layer_num].bias.data.shape)
+            # print("Ac Bias:", combined_bias.shape)
+            # print("To bias:",
+                #   combined_model_base.layers[layer_num].bias.data.shape)
             combined_model_base.layers[layer_num].weight.data = combined_weights_matrix
             combined_model_base.layers[layer_num].bias.data = combined_bias
 
@@ -200,13 +200,13 @@ if __name__ == "__main__":
                 40
             20       20
         10   10    10   10
-       5 5   5 5  5 5  5  5 
+       5 5   5 5  5 5  5  5
 
-       Is not exactly the same as combining all 5s to 40: 
+       Is not exactly the same as combining all 5s to 40:
                 40
-       5 5   5 5  5 5  5  5 
+       5 5   5 5  5 5  5  5
 
-       Due to biasa being averaged when combining. 
+       Due to biasa being averaged when combining.
     '''
     # type 1 - binary
     l1s = [NetL1() for i in range(8)]

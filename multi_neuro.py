@@ -89,7 +89,7 @@ class MultiNeuroEvolution:
 
                 else:
                     # weights
-                    layer_weights = candidate[self.decode_bias_lengths[i-1]:self.decode_weights_lengths[i]]
+                    layer_weights = candidate[self.decode_bias_lengths[i-1]                                              :self.decode_weights_lengths[i]]
 
                 # print("curr:", layer_weights.shape)
                 # print("TO:", self.decode_weights_shapes[i])
@@ -98,7 +98,7 @@ class MultiNeuroEvolution:
                 # print(layer_weights.shape)
 
                 # bias
-                layer_bias = candidate[self.decode_weights_lengths[i]:self.decode_bias_lengths[i]]
+                layer_bias = candidate[self.decode_weights_lengths[i]                                       :self.decode_bias_lengths[i]]
                 layer_bias = layer_bias.reshape(
                     list(self.decode_bias_shapes[i]))
 
@@ -336,8 +336,9 @@ class MultiNeuroEvolution:
         # print("iters, cores = ", hyperparams.num_iters, hyperparams.split_cores)
 
         # pool = mp.Pool(hyperparams.split_cores)
-        if best_solution:
+        if best_solution is not None:
             print("With best")
+            print("Best sol shape:", best_solution.shape)
             result = differential_evolution(self.cost_func_temp, self.bounds, callback=store_callback, polish=False, x0=best_solution,
                                             init=split_part_population, maxiter=hyperparams.num_iters, workers=hyperparams.split_cores, seed=1, disp=True, updating='deferred')
         else:
@@ -368,6 +369,17 @@ class MultiNeuroEvolution:
 
             self.save_dir = f"{hyperparams.save_dir}/L{i+1}"
             self.current_net_class = self.net_classes[i]
+
+            if i != 0:
+                gen_best_combined_nets = combine_group_binary(
+                    gen_best_nets, net_class=self.current_net_class)
+                gen_best_combined_sols = []
+
+                for j in range(len(gen_best_combined_nets)):
+                    encoded_vec = self.encode_network(
+                        gen_best_combined_nets[j])
+                    gen_best_combined_sols.append(encoded_vec)
+
             # print(self.current_net_class())
             # print("DECODES")
             # print(self.decode_weights_lengths)
@@ -376,7 +388,9 @@ class MultiNeuroEvolution:
             # print(self.decode_bias_lengths)
             # print(self.decode_bias_shapes)
             # # print("________")
-
+            print(f"\nRunning {current_max_count} parts")
+            gen_best_nets = []
+            gen_best_solutions = []
             for cur_count in range(current_max_count):
                 print(f"\n\n ---   Net class: {i+1}, Part:{cur_count+1}")
                 if i == 0:
@@ -396,9 +410,10 @@ class MultiNeuroEvolution:
                 gen_best_solutions.append(gen_best_sol)
                 gen_best_nets.append(gen_best_net)
 
-            gen_best_combined_sols = combine_group_binary(
-                gen_best_nets, net_class=self.current_net_class)
-            current_max_count /= 2
+                print("\n Sleeping for 10 sec")
+                time.sleep(10)
+
+            current_max_count = current_max_count // 2
 
     # initialization from ensemble of SGD outputs
     def run_SDG_init_DE(self):
