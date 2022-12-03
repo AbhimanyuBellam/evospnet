@@ -65,8 +65,8 @@ model_comb1 = CombLevel1()
 # TODO to combine in order of fitness
 
 
-def combine(net1, net2, combined_model_base):
-    combined_model_base = CombLevel1()
+def combine(net1, net2, combined_model_base=CombLevel1()):
+    # combined_model_base = CombLevel1()
     with torch.no_grad():
         for layer_num in range(len(net1.layers)):
             net1_layer_weights = net1.layers[layer_num].weight

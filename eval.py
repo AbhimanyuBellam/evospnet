@@ -14,8 +14,8 @@ from combine import CombLevel1
 #     model_paths.append(f"{root_dir}/weights/{model_names[i]}")
 
 # model_path = "results/basic_net_res/weights/sgd/combined_models/comb_1.pth"
-# model_path = "results/basic_net_res/weights/split_from_SGD_ensemble.pth"
-model_path = "results/basic_net_res/weights/sgd/basicnet/basicnet_37.pth"
+model_path = "results/basic_net_res/weights/split_from_SGD_ensemble.pth"
+# model_path = "results/basic_net_res/weights/sgd/basicnet/basicnet_37.pth"
 # model_path = "results/basic_net_res/weights/tests/encode_decode1.pth"
 
 network = BasicNet()

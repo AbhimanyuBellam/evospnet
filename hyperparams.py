@@ -3,16 +3,22 @@
 
 # no of candidate solutions in the population
 # If using DE initialised with SGD ensemble, ensure pop_size is equal to number of models available
-pop_size = 112
+pop_size = 10
 
 # how many parts are made with the given input
 num_split_parts = 1
 
 # num of iterations for each split part, to have length of num_split_parts
-num_iters = 800
+num_iters = 1
 
-# ideally taking no of cores=split will decrease the time, or split_cores can be less than the split value
-split_cores = 7
+# num cores to use for cost func evaluation
+split_cores = 8
+
+# number of groups to combine to form a higher level solution. Keep 2, if multiple, change function in code
+num_groups = 2
+
+# start off lowest level count
+start_level_count = 8
 
 # no of iterations of the split DE process. For each split part, this value is same.
 gen_split = 6700
@@ -21,7 +27,8 @@ gen_split = 6700
 batch_size = 100
 
 # save directory
-save_dir = "results/basic_net_res"
+save_dir = "results"
+# save_dir = "results/basic_net_res/"
 
 # no of iterations for integral case
 # this variable is for our assertion
@@ -34,7 +41,8 @@ total_gen_integral = 300
 
 # bounds for DE
 # bound = [-5.9, 4.7]
-bound = [-15, 15]
+bound = [-1.5, 1.5]
+bias_bound = [-15, 15]
 
 # mutation factor range and it can be between [0,2]
 F = [0, 1]
