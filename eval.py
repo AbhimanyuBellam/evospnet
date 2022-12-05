@@ -5,7 +5,8 @@ import torch.nn as nn
 from base_net import BasicNet
 import os
 import hyperparams as hyperparams
-from combine import CombLevel1
+# from combine import CombLevel1
+from split_network import NetL1, NetL2, NetL3, NetL4
 
 # root_dir = "/home/iec/abhimanyu/etc/splitnet/results/basic_net_res"
 # model_names = os.listdir(f"{root_dir}/weights")
@@ -14,14 +15,17 @@ from combine import CombLevel1
 #     model_paths.append(f"{root_dir}/weights/{model_names[i]}")
 
 # model_path = "results/basic_net_res/weights/sgd/combined_models/comb_1.pth"
-model_path = "results/basic_net_res/weights/split_from_SGD_ensemble.pth"
+# model_path = "results/basic_net_res/weights/split_from_SGD_ensemble.pth"
 # model_path = "results/basic_net_res/weights/sgd/basicnet/basicnet_37.pth"
 # model_path = "results/basic_net_res/weights/tests/encode_decode1.pth"
 
-network = BasicNet()
+model_path = "results/L1/weights/class_0_part_7.pth"
+print("L1")
+network = NetL1()
+# network = BasicNet()
 # network = CombLevel1()
 network.load_state_dict(torch.load(model_path))
-print(network.layers[0].weight.data)
+# print(network.layers[0].weight.data)
 
 device = "cuda:0"
 neural_cost_func = nn.CrossEntropyLoss()

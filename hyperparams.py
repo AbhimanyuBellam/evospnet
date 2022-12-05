@@ -3,16 +3,16 @@
 
 # no of candidate solutions in the population
 # If using DE initialised with SGD ensemble, ensure pop_size is equal to number of models available
-pop_size = 14
+pop_size = 120
 
 # how many parts are made with the given input
 num_split_parts = 1
 
 # num of iterations for each split part, to have length of num_split_parts
-num_iters = 2
+num_iters = 150
 
 # num cores to use for cost func evaluation
-split_cores = 7
+split_cores = 8
 
 # number of groups to combine to form a higher level solution. Keep 2, if multiple, change function in code
 num_groups = 2
